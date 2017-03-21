@@ -34,6 +34,11 @@ pthread_cond_t alarm_cond = PTHREAD_COND_INITIALIZER;
 alarm_t *alarm_list = NULL;
 time_t current_alarm = 0;
 
+// TODO
+void cancel_alarm () {
+    
+}
+
 /*
  * Insert alarm entry on list, in order.
  */
@@ -153,15 +158,25 @@ void *alarm_thread (void *arg)
     }
 }
 
-int main (int argc, char *argv[])
-{
+int message_id_exists(int m_id) {
+    alarm_t *next;
+
+    for(next = alarm_list; next != NULL; next = next->link) {
+        if(next->message_number == m_id)
+            return 1;
+        else
+            return 0;
+    }
+}
+
+int main (int argc, char *argv[]) {
     int status;
+    int cancel_message_id = 0;
     char line[128];
     alarm_t *alarm;
     pthread_t thread;
 
-    status = pthread_create (
-        &thread, NULL, alarm_thread, NULL);
+    status = pthread_create (&thread, NULL, alarm_thread, NULL);
     if (status != 0)
         err_abort (status, "Create alarm thread");
     while (1) {
@@ -169,6 +184,7 @@ int main (int argc, char *argv[])
         if (fgets (line, sizeof (line), stdin) == NULL) exit (0);
         if (strlen (line) <= 1) continue;
         alarm = (alarm_t*)malloc (sizeof (alarm_t));
+        
         if (alarm == NULL)
             errno_abort ("Allocate alarm");
 
@@ -177,29 +193,46 @@ int main (int argc, char *argv[])
          * (%64[^\n]), consisting of up to 64 characters
          * separated from the seconds by whitespace.
          */
-        if (sscanf (line, "%d Message(%d) %64[^\n]", 
-            &alarm->seconds, &alarm->message_number, alarm->message) < 3) {
+         
+        int insert_command_parse = sscanf(line, "%d Message(%d) %64[^\n]",
+            &alarm->seconds, &alarm->message_number, alarm->message);
+            
+        int cancel_command_parse = sscanf(line, "Cancel: Message(%d)", &cancel_message_id);
+        
+        if(insert_command_parse == 3) {
+            // Check if the message_number exits in the alarm list
+            if(message_id_exists(alarm->message_number) == 0) {
+                status = pthread_mutex_lock (&alarm_mutex);
+                if (status != 0)
+                    err_abort (status, "Lock mutex");
+                alarm->time = time (NULL) + alarm->seconds;
+                /*
+                 * Insert the new alarm into the list of alarms,
+                 * sorted by expiration time.
+                 */
+                alarm_insert (alarm);
+                
+                // A3.2.1 Print Statement
+                printf("First Alarm Request With Message Number (%d) Received at <%ld>: <%d %s>\n", 
+                        alarm->message_number, time(NULL), alarm->seconds, alarm->message);
+                        
+                status = pthread_mutex_unlock (&alarm_mutex);
+                if (status != 0)
+                    err_abort (status, "Unlock mutex");
+            } else {
+                // A3.2.2 Print Statement
+                printf("Replacement Alarm Request With Message Number (%d) Received at <%ld>: <%d %s>\n", 
+                        alarm->message_number, time(NULL), alarm->seconds, alarm->message);
+                // TODO A3.2.2
+            }
+            
+        } else if(cancel_command_parse == 1)  {
+            // TODO
+            printf("TODO: Cancel Message\n");
+        } else {
             fprintf (stderr, "Bad command\n");
             free (alarm);
-        } else {
-            // TODO - A3.2.1 Check if the message_number is unique
-            status = pthread_mutex_lock (&alarm_mutex);
-            if (status != 0)
-                err_abort (status, "Lock mutex");
-            alarm->time = time (NULL) + alarm->seconds;
-            /*
-             * Insert the new alarm into the list of alarms,
-             * sorted by expiration time.
-             */
-            alarm_insert (alarm);
-            
-            // A3.2.1 Print Statement
-            printf("First Alarm Request With Message Number (%d) Received at <%ld>: <%d %s>\n", 
-                    alarm->message_number, time(NULL), alarm->seconds, alarm->message);
-                    
-            status = pthread_mutex_unlock (&alarm_mutex);
-            if (status != 0)
-                err_abort (status, "Unlock mutex");
         }
-    }
+         
+    } // While closing brace
 }
