@@ -1,18 +1,10 @@
-/*
- * alarm_cond.c
- *
- * This is an enhancement to the alarm_mutex.c program, which
- * used only a mutex to synchronize access to the shared alarm
- * list. This version adds a condition variable. The alarm
- * thread waits on this condition variable, with a timeout that
- * corresponds to the earliest timer request. If the main thread
- * enters an earlier timeout, it signals the condition variable
- * so that the alarm thread will wake up and process the earlier
- * timeout first, requeueing the later request.
- */
 #include <pthread.h>
 #include <time.h>
 #include "errors.h"
+
+// Reqest type constants
+#define typeA 'A'
+#define typeB 'B'
 
 /*
  * The "alarm" structure now contains the time_t (time since the
@@ -26,6 +18,7 @@ typedef struct alarm_tag {
     int                 seconds;
     time_t              time;   /* Seconds from EPOCH */
     int                 message_number; /* Message identifier */
+    char                request_type; /* Either A or B*/    
     char                message[128];
 } alarm_t;
 
@@ -76,8 +69,8 @@ void alarm_insert (alarm_t *alarm)
 
     printf ("[list: ");
     for (next = alarm_list; next != NULL; next = next->link)
-        printf ("%d(%d)[\"%s\"] ", next->time,
-            next->time - time (NULL), next->message);
+        printf ("%d(%d)[\"%s\"] - %c ", next->time,
+            next->time - time (NULL), next->message, next->request_type);
     printf ("]\n");
 
     /*
@@ -205,6 +198,7 @@ int main (int argc, char *argv[]) {
                 if (status != 0)
                     err_abort (status, "Lock mutex");
                 alarm->time = time (NULL) + alarm->seconds;
+                alarm->request_type = typeA;
                 /*
                  * Insert the new alarm into the list of alarms,
                  * sorted by expiration time.
