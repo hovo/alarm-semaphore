@@ -26,7 +26,7 @@ typedef struct alarm_tag {
     int                 seconds;
     time_t              time;   /* Seconds from EPOCH */
     int                 message_number; /* Message identifier */
-    char                message[64];
+    char                message[128];
 } alarm_t;
 
 pthread_mutex_t alarm_mutex = PTHREAD_MUTEX_INITIALIZER;
@@ -73,13 +73,13 @@ void alarm_insert (alarm_t *alarm)
         *last = alarm;
         alarm->link = NULL;
     }
-#ifdef DEBUG
+
     printf ("[list: ");
     for (next = alarm_list; next != NULL; next = next->link)
         printf ("%d(%d)[\"%s\"] ", next->time,
             next->time - time (NULL), next->message);
     printf ("]\n");
-#endif
+
     /*
      * Wake the alarm thread if it is not busy (that is, if
      * current_alarm is 0, signifying that it's waiting for
@@ -97,8 +97,7 @@ void alarm_insert (alarm_t *alarm)
 /*
  * The alarm thread's start routine.
  */
-void *alarm_thread (void *arg)
-{
+void *alarm_thread (void *arg) {
     alarm_t *alarm;
     struct timespec cond_time;
     time_t now;
@@ -172,7 +171,7 @@ int message_id_exists(int m_id) {
 int main (int argc, char *argv[]) {
     int status;
     int cancel_message_id = 0;
-    char line[128];
+    char line[256];
     alarm_t *alarm;
     pthread_t thread;
 
@@ -194,7 +193,7 @@ int main (int argc, char *argv[]) {
          * separated from the seconds by whitespace.
          */
          
-        int insert_command_parse = sscanf(line, "%d Message(%d) %64[^\n]",
+        int insert_command_parse = sscanf(line, "%d Message(%d) %128[^\n]",
             &alarm->seconds, &alarm->message_number, alarm->message);
             
         int cancel_command_parse = sscanf(line, "Cancel: Message(%d)", &cancel_message_id);
@@ -229,6 +228,8 @@ int main (int argc, char *argv[]) {
         } else if(cancel_command_parse == 1)  {
             // TODO
             printf("TODO: Cancel Message\n");
+            // TODO 3.2.3 -- Check if the message id message id message id exists
+            printf("Error: No Alarm Request With Message Number (%d) to Cancel!", cancel_message_id);
         } else {
             fprintf (stderr, "Bad command\n");
             free (alarm);
