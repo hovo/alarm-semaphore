@@ -198,7 +198,7 @@ int main (int argc, char *argv[]) {
             
         int cancel_command_parse = sscanf(line, "Cancel: Message(%d)", &cancel_message_id);
         
-        if(insert_command_parse == 3) {
+        if(insert_command_parse == 3 && alarm->seconds > 0 && alarm->message_number > 0) {
             // Check if the message_number exits in the alarm list
             if(message_id_exists(alarm->message_number) == 0) {
                 status = pthread_mutex_lock (&alarm_mutex);
