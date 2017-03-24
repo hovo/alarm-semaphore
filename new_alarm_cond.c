@@ -27,6 +27,48 @@ pthread_cond_t alarm_cond = PTHREAD_COND_INITIALIZER;
 alarm_t *alarm_list = NULL;
 time_t current_alarm = 0;
 
+void print_alarm_list() {
+    alarm_t *next;
+    
+    printf ("[list: ");
+    for (next = alarm_list; next != NULL; next = next->link)
+        printf ("%d(%d)[\"%s\"] - %c", next->time,
+            next->time - time (NULL), next->message, next->request_type);
+    printf ("]\n");
+}
+
+void find_and_replace(alarm_t *new_alarm) {
+    alarm_t *next;
+    int status;
+    
+    status = pthread_mutex_lock (&alarm_mutex);
+    if (status != 0)
+        err_abort (status, "Lock mutex");
+        
+    for(next = alarm_list; next != NULL; next = next->link) {
+        if(next->message_number == new_alarm->message_number) {
+            next->seconds = new_alarm->seconds;
+            next->time = time(NULL) + new_alarm->seconds;
+            strcpy(next->message , new_alarm->message);
+        }
+    }
+    
+    status = pthread_mutex_unlock (&alarm_mutex);
+    if (status != 0)
+        err_abort (status, "Unlock mutex");
+}
+
+int message_id_exists(int m_id) {
+    alarm_t *next;
+
+    for(next = alarm_list; next != NULL; next = next->link) {
+        if(next->message_number == m_id)
+            return 1;
+        else
+            return 0;
+    }
+}
+
 // TODO
 void cancel_alarm () {
     
@@ -67,11 +109,7 @@ void alarm_insert (alarm_t *alarm)
         alarm->link = NULL;
     }
 
-    printf ("[list: ");
-    for (next = alarm_list; next != NULL; next = next->link)
-        printf ("%d(%d)[\"%s\"] - %c ", next->time,
-            next->time - time (NULL), next->message, next->request_type);
-    printf ("]\n");
+    print_alarm_list();
 
     /*
      * Wake the alarm thread if it is not busy (that is, if
@@ -91,74 +129,63 @@ void alarm_insert (alarm_t *alarm)
  * The alarm thread's start routine.
  */
 void *alarm_thread (void *arg) {
-    alarm_t *alarm;
-    struct timespec cond_time;
-    time_t now;
-    int status, expired;
+//     alarm_t *alarm;
+//     struct timespec cond_time;
+//     time_t now;
+//     int status, expired;
 
-    /*
-     * Loop forever, processing commands. The alarm thread will
-     * be disintegrated when the process exits. Lock the mutex
-     * at the start -- it will be unlocked during condition
-     * waits, so the main thread can insert alarms.
-     */
-    status = pthread_mutex_lock (&alarm_mutex);
-    if (status != 0)
-        err_abort (status, "Lock mutex");
-    while (1) {
-        /*
-         * If the alarm list is empty, wait until an alarm is
-         * added. Setting current_alarm to 0 informs the insert
-         * routine that the thread is not busy.
-         */
-        current_alarm = 0;
-        while (alarm_list == NULL) {
-            status = pthread_cond_wait (&alarm_cond, &alarm_mutex);
-            if (status != 0)
-                err_abort (status, "Wait on cond");
-            }
-        alarm = alarm_list;
-        alarm_list = alarm->link;
-        now = time (NULL);
-        expired = 0;
-        if (alarm->time > now) {
-#ifdef DEBUG
-            printf ("[waiting: %d(%d)\"%s\"]\n", alarm->time,
-                alarm->time - time (NULL), alarm->message);
-#endif
-            cond_time.tv_sec = alarm->time;
-            cond_time.tv_nsec = 0;
-            current_alarm = alarm->time;
-            while (current_alarm == alarm->time) {
-                status = pthread_cond_timedwait (
-                    &alarm_cond, &alarm_mutex, &cond_time);
-                if (status == ETIMEDOUT) {
-                    expired = 1;
-                    break;
-                }
-                if (status != 0)
-                    err_abort (status, "Cond timedwait");
-            }
-            if (!expired)
-                alarm_insert (alarm);
-        } else
-            expired = 1;
-        if (expired) {
-            printf ("(%d) %s\n", alarm->seconds, alarm->message);
-            free (alarm);
-        }
-    }
-}
-
-int message_id_exists(int m_id) {
-    alarm_t *next;
-
-    for(next = alarm_list; next != NULL; next = next->link) {
-        if(next->message_number == m_id)
-            return 1;
-        else
-            return 0;
-    }
+//     /*
+//      * Loop forever, processing commands. The alarm thread will
+//      * be disintegrated when the process exits. Lock the mutex
+//      * at the start -- it will be unlocked during condition
+//      * waits, so the main thread can insert alarms.
+//      */
+//     status = pthread_mutex_lock (&alarm_mutex);
+//     if (status != 0)
+//         err_abort (status, "Lock mutex");
+//     while (1) {
+//         /*
+//          * If the alarm list is empty, wait until an alarm is
+//          * added. Setting current_alarm to 0 informs the insert
+//          * routine that the thread is not busy.
+//          */
+//         current_alarm = 0;
+//         while (alarm_list == NULL) {
+//             status = pthread_cond_wait (&alarm_cond, &alarm_mutex);
+//             if (status != 0)
+//                 err_abort (status, "Wait on cond");
+//             }
+//         alarm = alarm_list;
+//         alarm_list = alarm->link;
+//         now = time (NULL);
+//         expired = 0;
+//         if (alarm->time > now) {
+// #ifdef DEBUG
+//             printf ("[waiting: %d(%d)\"%s\"]\n", alarm->time,
+//                 alarm->time - time (NULL), alarm->message);
+// #endif
+//             cond_time.tv_sec = alarm->time;
+//             cond_time.tv_nsec = 0;
+//             current_alarm = alarm->time;
+//             while (current_alarm == alarm->time) {
+//                 status = pthread_cond_timedwait (
+//                     &alarm_cond, &alarm_mutex, &cond_time);
+//                 if (status == ETIMEDOUT) {
+//                     expired = 1;
+//                     break;
+//                 }
+//                 if (status != 0)
+//                     err_abort (status, "Cond timedwait");
+//             }
+//             if (!expired)
+//                 alarm_insert (alarm);
+//         } else
+//             expired = 1;
+//         if (expired) {
+//             printf ("(%d) %s\n", alarm->seconds, alarm->message);
+//             free (alarm);
+//         }
+//     }
 }
 
 int main (int argc, char *argv[]) {
@@ -213,6 +240,8 @@ int main (int argc, char *argv[]) {
                 if (status != 0)
                     err_abort (status, "Unlock mutex");
             } else {
+                find_and_replace(alarm);
+                print_alarm_list();
                 // A3.2.2 Print Statement
                 printf("Replacement Alarm Request With Message Number (%d) Received at <%ld>: <%d %s>\n", 
                         alarm->message_number, time(NULL), alarm->seconds, alarm->message);
