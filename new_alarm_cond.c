@@ -259,6 +259,8 @@ int main (int argc, char *argv[]) {
                     printf("Error: More Than One Request to Cancel Alarm Request With Message Number (%d)!\n", cancel_message_id);
                 else {
                     at_alarm->cancellable = at_alarm->cancellable + 1;
+                    printf("Cancel Alarm Request With Message Number (%d) Received at <%ld>: <%d %s>\n", 
+                        at_alarm->message_number, time(NULL), at_alarm->seconds, at_alarm->message);
                 }
 
             }
