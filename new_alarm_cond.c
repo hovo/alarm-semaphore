@@ -2,10 +2,6 @@
 #include <time.h>
 #include "errors.h"
 
-// Reqest type constants
-#define typeA 'A'
-#define typeB 'B'
-
 /*
  * The "alarm" structure now contains the time_t (time since the
  * Epoch, in seconds) for each alarm, so that they can be
@@ -16,9 +12,9 @@
 typedef struct alarm_tag {
     struct alarm_tag    *link;
     int                 seconds;
-    time_t              time;   /* Seconds from EPOCH */
     int                 message_number; /* Message identifier */
-    char                request_type; /* Either A or B*/    
+    int                 cancellable; /* Either 0 or 1 */ 
+    time_t              time;   /* Seconds from EPOCH */
     char                message[128];
 } alarm_t;
 
@@ -32,41 +28,46 @@ void print_alarm_list() {
     
     printf ("[list: ");
     for (next = alarm_list; next != NULL; next = next->link)
-        printf ("%d(%d)[\"%s\"] - %c", next->time,
-            next->time - time (NULL), next->message, next->request_type);
+        printf ("%ld(%ld)[\"%s\"]", next->time,
+            next->time - time (NULL), next->message);
     printf ("]\n");
 }
 
-void find_and_replace(alarm_t *new_alarm) {
+alarm_t *get_alarm_at(int m_id) {
     alarm_t *next;
+
+    for(next = alarm_list; next != NULL; next = next->link) {
+        if(next->message_number == m_id)
+            return next;
+    }
+}
+
+int message_id_exists(int m_id) {
+    alarm_t *alarm = get_alarm_at(m_id);
+    
+    if (alarm != NULL)
+        return 1;
+    else
+        return 0;
+    
+}
+
+void find_and_replace(alarm_t *new_alarm) {
+    alarm_t *old_alarm;
     int status;
     
     status = pthread_mutex_lock (&alarm_mutex);
     if (status != 0)
         err_abort (status, "Lock mutex");
         
-    for(next = alarm_list; next != NULL; next = next->link) {
-        if(next->message_number == new_alarm->message_number) {
-            next->seconds = new_alarm->seconds;
-            next->time = time(NULL) + new_alarm->seconds;
-            strcpy(next->message , new_alarm->message);
-        }
-    }
+    old_alarm = get_alarm_at(new_alarm->message_number);
+    old_alarm->seconds = new_alarm->seconds;
+    old_alarm->time = time(NULL) + new_alarm->seconds;
+    strcpy(old_alarm->message , new_alarm->message);
     
     status = pthread_mutex_unlock (&alarm_mutex);
     if (status != 0)
         err_abort (status, "Unlock mutex");
-}
-
-int message_id_exists(int m_id) {
-    alarm_t *next;
-
-    for(next = alarm_list; next != NULL; next = next->link) {
-        if(next->message_number == m_id)
-            return 1;
-        else
-            return 0;
-    }
 }
 
 // TODO
@@ -225,7 +226,7 @@ int main (int argc, char *argv[]) {
                 if (status != 0)
                     err_abort (status, "Lock mutex");
                 alarm->time = time (NULL) + alarm->seconds;
-                alarm->request_type = typeA;
+                alarm->cancellable = 0;
                 /*
                  * Insert the new alarm into the list of alarms,
                  * sorted by expiration time.
@@ -252,6 +253,14 @@ int main (int argc, char *argv[]) {
             // TODO 3.2.3 -- Check if the message id exists
             if(message_id_exists(cancel_message_id) == 0) {
                 printf("Error: No Alarm Request With Message Number (%d) to Cancel!\n", cancel_message_id);
+            } else{
+                alarm_t *at_alarm = get_alarm_at(cancel_message_id);
+                if (at_alarm->cancellable > 0)
+                    printf("Error: More Than One Request to Cancel Alarm Request With Message Number (%d)!\n", cancel_message_id);
+                else {
+                    at_alarm->cancellable = at_alarm->cancellable + 1;
+                }
+
             }
         } else {
             fprintf (stderr, "Bad command\n");
