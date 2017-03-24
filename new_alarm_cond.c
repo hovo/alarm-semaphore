@@ -249,10 +249,10 @@ int main (int argc, char *argv[]) {
             }
             
         } else if(cancel_command_parse == 1)  {
-            // TODO
-            printf("TODO: Cancel Message\n");
-            // TODO 3.2.3 -- Check if the message id message id message id exists
-            printf("Error: No Alarm Request With Message Number (%d) to Cancel!", cancel_message_id);
+            // TODO 3.2.3 -- Check if the message id exists
+            if(message_id_exists(cancel_message_id) == 0) {
+                printf("Error: No Alarm Request With Message Number (%d) to Cancel!\n", cancel_message_id);
+            }
         } else {
             fprintf (stderr, "Bad command\n");
             free (alarm);
