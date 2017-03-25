@@ -92,7 +92,7 @@ void alarm_insert (alarm_t *alarm)
     last = &alarm_list;
     next = *last;
     while (next != NULL) {
-        if (next->time >= alarm->time) {
+        if (next->message_number >= alarm->message_number) {
             alarm->link = next;
             *last = alarm;
             break;
@@ -109,8 +109,12 @@ void alarm_insert (alarm_t *alarm)
         *last = alarm;
         alarm->link = NULL;
     }
-
-    print_alarm_list();
+    
+    // A.3.2.1
+    printf("First Alarm Request With Message Number (%d) Received at <%ld>: <%d %s>\n",
+        alarm->message_number, time(NULL), alarm->seconds, alarm->message);
+        
+    //print_alarm_list();
 
     /*
      * Wake the alarm thread if it is not busy (that is, if
@@ -233,10 +237,6 @@ int main (int argc, char *argv[]) {
                  */
                 alarm_insert (alarm);
                 
-                // A3.2.1 Print Statement
-                printf("First Alarm Request With Message Number (%d) Received at <%ld>: <%d %s>\n", 
-                        alarm->message_number, time(NULL), alarm->seconds, alarm->message);
-                        
                 status = pthread_mutex_unlock (&alarm_mutex);
                 if (status != 0)
                     err_abort (status, "Unlock mutex");
@@ -262,12 +262,11 @@ int main (int argc, char *argv[]) {
                     printf("Cancel Alarm Request With Message Number (%d) Received at <%ld>: <%d %s>\n", 
                         at_alarm->message_number, time(NULL), at_alarm->seconds, at_alarm->message);
                 }
-
             }
         } else {
             fprintf (stderr, "Bad command\n");
             free (alarm);
         }
          
-    } // While closing brace
+    }
 }
