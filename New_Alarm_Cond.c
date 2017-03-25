@@ -128,7 +128,7 @@ void alarm_insert(alarm_t *alarm) {
 }
 
 void *periodic_display_thread(void *arg) {
-    
+    printf("received");
 }
 
 // Alarm thread - Process new alarms
@@ -145,15 +145,19 @@ void *alarm_thread(void *arg) {
             }
         
             if(alarm->cancellable == 0){
-                // TODO create a new periodic_display_thread
+                // TODO: create a new periodic_display_thread
+                status = pthread_create(&display_t, NULL, periodic_display_thread, (void *)alarm);
+                if(status != 0)
+                    err_abort(status, "Create periodic display thread");
             } else {
-                // TODO remove the alarm from the list
+                // TODO: remove the alarm from the list
             }
             printf("Alarm Request With Message Number (%d) Processed at <%ld>: <%d %s>\n", 
                 alarm->message_number, time(NULL), alarm->seconds, alarm->message);
             status = pthread_cond_wait (&alarm_cond, &alarm_mutex);
         }
     }
+
 }
 
 // main thread
