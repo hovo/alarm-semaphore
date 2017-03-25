@@ -21,7 +21,7 @@ typedef struct alarm_tag {
 pthread_mutex_t alarm_mutex = PTHREAD_MUTEX_INITIALIZER;
 pthread_cond_t alarm_cond = PTHREAD_COND_INITIALIZER;
 alarm_t *alarm_list = NULL;
-time_t current_alarm = 0;
+int current_alarm = 0;
 
 void print_alarm_list() {
     alarm_t *next;
@@ -70,16 +70,13 @@ void find_and_replace(alarm_t *new_alarm) {
         err_abort (status, "Unlock mutex");
 }
 
-// TODO
-void cancel_alarm () {
+// TODO - Remove node from alarm list
+void cancel_alarm (alarm_t *alarm) {
     
 }
 
-/*
- * Insert alarm entry on list, in order.
- */
-void alarm_insert (alarm_t *alarm)
-{
+// Insert alarm entry on list, in order.
+void alarm_insert(alarm_t *alarm) {
     int status;
     alarm_t **last, *next;
 
@@ -130,65 +127,36 @@ void alarm_insert (alarm_t *alarm)
     }
 }
 
-/*
- * The alarm thread's start routine.
- */
-void *alarm_thread (void *arg) {
-    alarm_t *alarm;
-    struct timespec cond_time;
-    time_t now;
-    int status, expired;
+void *periodic_display_thread(void *arg) {
+    
+}
 
-    /*
-     * Loop forever, processing commands. The alarm thread will
-     * be disintegrated when the process exits. Lock the mutex
-     * at the start -- it will be unlocked during condition
-     * waits, so the main thread can insert alarms.
-     */
-    status = pthread_mutex_lock (&alarm_mutex);
-    if (status != 0)
-        err_abort (status, "Lock mutex");
-    while (1) {
-        /*
-         * If the alarm list is empty, wait until an alarm is
-         * added. Setting current_alarm to 0 informs the insert
-         * routine that the thread is not busy.
-         */
-        current_alarm = 0;
-        while (alarm_list == NULL) {
+// Alarm thread - Process new alarms
+void *alarm_thread(void *arg) {
+    pthread_t display_t;
+    alarm_t *alarm;
+    int status;
+    
+    while(1) {
+        if (alarm_list != NULL) {
+            alarm = alarm_list;
+            while(alarm->message_number != current_alarm){
+                alarm = alarm->link;
+            }
+        
+            if(alarm->cancellable == 0){
+                // TODO create a new periodic_display_thread
+            } else {
+                // TODO remove the alarm from the list
+            }
+            printf("Alarm Request With Message Number (%d) Processed at <%ld>: <%d %s>\n", 
+                alarm->message_number, time(NULL), alarm->seconds, alarm->message);
             status = pthread_cond_wait (&alarm_cond, &alarm_mutex);
-            if (status != 0)
-                err_abort (status, "Wait on cond");
-            }
-        alarm = alarm_list;
-        alarm_list = alarm->link;
-        now = time (NULL);
-        expired = 0;
-        if (alarm->time > now) {
-            cond_time.tv_sec = alarm->time;
-            cond_time.tv_nsec = 0;
-            current_alarm = alarm->time;
-            while (current_alarm == alarm->time) {
-                status = pthread_cond_timedwait (
-                    &alarm_cond, &alarm_mutex, &cond_time);
-                if (status == ETIMEDOUT) {
-                    expired = 1;
-                    break;
-                }
-                if (status != 0)
-                    err_abort (status, "Cond timedwait");
-            }
-            if (!expired)
-                alarm_insert (alarm);
-        } else
-            expired = 1;
-        if (expired) {
-            printf("(%d) %s\n", alarm->seconds, alarm->message);
-            free(alarm);
         }
     }
 }
 
+// main thread
 int main (int argc, char *argv[]) {
     int status;
     int cancel_message_id = 0;
@@ -220,6 +188,7 @@ int main (int argc, char *argv[]) {
                     err_abort (status, "Lock mutex");
                 alarm->time = time (NULL) + alarm->seconds;
                 alarm->cancellable = 0;
+                current_alarm = alarm->message_number;
                 /*
                  * Insert the new alarm into the list of alarms,
                  * sorted by message_number.
