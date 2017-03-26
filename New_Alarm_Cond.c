@@ -13,7 +13,8 @@ typedef struct alarm_tag {
     struct alarm_tag    *link;
     int                 seconds;
     int                 message_number; /* Message identifier */
-    int                 cancellable; /* Either 0 or 1 */ 
+    int                 cancellable; /* Either 0 or 1 */
+    int                 replaced;
     time_t              time;   /* Seconds from EPOCH */
     char                message[128];
 } alarm_t;
@@ -63,6 +64,7 @@ void find_and_replace(alarm_t *new_alarm) {
     old_alarm = get_alarm_at(new_alarm->message_number);
     old_alarm->seconds = new_alarm->seconds;
     old_alarm->time = time(NULL) + new_alarm->seconds;
+    old_alarm->replaced = 1;
     strcpy(old_alarm->message , new_alarm->message);
     
     status = pthread_mutex_unlock (&alarm_mutex);
@@ -127,8 +129,35 @@ void alarm_insert(alarm_t *alarm) {
     }
 }
 
-void *periodic_display_thread(void *arg) {
-    printf("received");
+void *periodic_display_thread(void *alarm_in) {
+    //printf("received");
+    int alarm_replaced = 0;
+    alarm_t *alarm = (alarm_t*) alarm_in;
+    alarm_t *next;
+    int status;
+    
+    while(1) {
+        if(alarm_list != NULL) {
+            next = alarm_list;
+            
+            while(next->message_number != alarm->message_number)
+                next = next->link;
+                
+            if(next == NULL || alarm->cancellable > 0) {
+                printf("Display thread exiting at <%ld>: <%d %s>\n", 
+                    time(NULL), alarm->seconds, alarm->message);
+                // TODO: Terminate thread
+                free(alarm);
+                break;
+            } else {
+                if(next->replaced == 1) {
+                    printf("Alarm With Message Number (%d) Replaced at <%ld>: <%d %s>\n",
+                        alarm->message_number, time(NULL), alarm->seconds, alarm->message);
+                    alarm_replaced = 1;
+                } 
+            }
+        }
+    }
 }
 
 // Alarm thread - Process new alarms
@@ -192,6 +221,7 @@ int main (int argc, char *argv[]) {
                     err_abort (status, "Lock mutex");
                 alarm->time = time (NULL) + alarm->seconds;
                 alarm->cancellable = 0;
+                alarm->replaced = 0;
                 current_alarm = alarm->message_number;
                 /*
                  * Insert the new alarm into the list of alarms,
