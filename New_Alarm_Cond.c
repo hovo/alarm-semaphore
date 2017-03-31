@@ -171,12 +171,16 @@ void *periodic_display_thread(void *alarm_in) {
                     time(NULL), alarm->seconds, alarm->message);
                 // TODO: Terminate thread
                 break;
-            } else {
-                // if(next->replaced == 1) {
-                //     printf("Alarm With Message Number (%d) Replaced at <%ld>: <%d %s>\n",
-                //         alarm->message_number, time(NULL), alarm->seconds, alarm->message);
-                //     alarm_replaced = 1;
-                // } 
+            } else if(next->replaced == 1) {
+                if(alarm_replaced == 0) {
+                     printf("Alarm With Message Number (%d) Replaced at <%ld>: <%d %s>\n",
+                    alarm->message_number, time(NULL), alarm->seconds, alarm->message);
+                }
+              
+                printf("Replacement Alarm With Message Number (%d) Displayed at <%ld>: <%d %s>",
+                    next->message_number, time(NULL), next->seconds, next->message);
+                alarm_replaced = 1;
+                sleep(next->message_number);
             }
         }
     }
