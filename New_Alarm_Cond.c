@@ -216,7 +216,10 @@ void *alarm_thread(void *arg) {
             }
             printf("Alarm Request With Message Number (%d) Processed at <%ld>: <%d %s>\n", 
                 alarm->message_number, time(NULL), alarm->seconds, alarm->message);
+                
             status = pthread_cond_wait (&alarm_cond, &alarm_mutex);
+            if (status != 0)
+                err_abort (status, "Wait on cond");
         }
     }
 
@@ -253,13 +256,15 @@ int main (int argc, char *argv[]) {
         if(insert_command_parse == 3 && alarm->seconds > 0 && alarm->message_number > 0) {
             // Check if the message_number exits in the alarm list
             if(message_id_exists(alarm->message_number) == 0) {
-                status = pthread_mutex_lock (&alarm_mutex);
-                if (status != 0)
-                    err_abort (status, "Lock mutex");
                 alarm->time = time (NULL) + alarm->seconds;
                 alarm->cancellable = 0;
                 alarm->replaced = 0;
                 current_alarm = alarm->message_number;
+                
+                status = pthread_mutex_lock (&alarm_mutex);
+                if (status != 0)
+                    err_abort (status, "Lock mutex");
+                
                 /*
                  * Insert the new alarm into the list of alarms,
                  * sorted by message_number.
@@ -286,8 +291,8 @@ int main (int argc, char *argv[]) {
                     printf("Error: More Than One Request to Cancel Alarm Request With Message Number (%d)!\n", cancel_message_id);
                 else {
                     at_alarm->cancellable = at_alarm->cancellable + 1;
-                    pthread_cond_signal(&alarm_cond);
                     current_alarm = at_alarm->message_number;
+                    pthread_cond_signal(&alarm_cond);
                     printf("Cancel Alarm Request With Message Number (%d) Received at <%ld>: <%d %s>\n", 
                         at_alarm->message_number, time(NULL), at_alarm->seconds, at_alarm->message);
                 }
