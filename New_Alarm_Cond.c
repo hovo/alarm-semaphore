@@ -3,13 +3,7 @@
 #include "errors.h"
 #include <semaphore.h>
 
-/*
- * The "alarm" structure now contains the time_t (time since the
- * Epoch, in seconds) for each alarm, so that they can be
- * sorted. Storing the requested number of seconds would not be
- * enough, since the "alarm thread" cannot tell how long it has
- * been on the list.
- */
+// TODO: description of the new struct
 typedef struct alarm_tag {
     struct alarm_tag    *link;
     int                 seconds;
@@ -42,10 +36,12 @@ void print_alarm_list() {
 
 alarm_t *get_alarm_at(int m_id) {
     alarm_t *next;
-
-    for(next = alarm_list; next != NULL; next = next->link) {
-        if(next->message_number == m_id)
-            return next;
+    
+    if(alarm_list != NULL) {
+        for(next = alarm_list; next != NULL; next = next->link) {
+            if(next->message_number == m_id)
+                return next;
+        }
     }
 }
 
@@ -135,8 +131,6 @@ void alarm_insert(alarm_t *alarm) {
     printf("First Alarm Request With Message Number (%d) Received at <%ld>: <%d %s>\n",
         alarm->message_number, time(NULL), alarm->seconds, alarm->message);
         
-    //print_alarm_list();
-
     /*
      * Wake the alarm thread if it is not busy (that is, if
      * current_alarm is 0, signifying that it's waiting for
@@ -212,7 +206,7 @@ void *alarm_thread(void *arg) {
     while(1) {
         if (alarm_list != NULL) {
             alarm = get_alarm_at(current_alarm);
-        
+            
             if(alarm->cancellable == 0){
                 status = pthread_create(&display_t, NULL, periodic_display_thread, (void *)alarm);
                 if(status != 0)
@@ -278,14 +272,12 @@ int main (int argc, char *argv[]) {
                     err_abort (status, "Unlock mutex");
             } else {
                 find_and_replace(alarm);
-                //print_alarm_list();
                 // A3.2.2 Print Statement
                 printf("Replacement Alarm Request With Message Number (%d) Received at <%ld>: <%d %s>\n", 
-                        alarm->message_number, time(NULL), alarm->seconds, alarm->message);
+                    alarm->message_number, time(NULL), alarm->seconds, alarm->message);
             }
             
         } else if(cancel_command_parse == 1)  {
-            // TODO 3.2.3 -- Check if the message id exists
             if(message_id_exists(cancel_message_id) == 0) {
                 printf("Error: No Alarm Request With Message Number (%d) to Cancel!\n", cancel_message_id);
             } else{
