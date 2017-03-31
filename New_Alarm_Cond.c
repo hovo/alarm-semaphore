@@ -79,15 +79,14 @@ void cancel_alarm (alarm_t *alarm) {
     alarm_t *prev = alarm_list;
     
     sem_wait(&rw_mutex);
-    // Perform deletion
-    if(alarm_list != NULL && alarm_list == alarm) {
-        if(alarm_list->link == NULL) {
-            alarm_list = NULL;
+
+    if(alarm_list != NULL) {
+        if(alarm_list == alarm) {
+            if(alarm_list->link == NULL)
+                alarm_list = NULL;
+            else
+                alarm_list = alarm_list->link;
         } else {
-            alarm_list = alarm_list->link;
-        }
-    } else {
-        if(alarm_list != NULL) {
             while(prev->link != NULL && prev->link != alarm)
                 prev = prev->link;
             
@@ -95,6 +94,7 @@ void cancel_alarm (alarm_t *alarm) {
                 prev->link = prev->link->link;
         }
     }
+    
     sem_post(&rw_mutex);
 }
 
@@ -197,10 +197,7 @@ void *alarm_thread(void *arg) {
                 if(status != 0)
                     err_abort(status, "Create periodic display thread");
             } else {
-                print_alarm_list();
                 cancel_alarm(alarm);
-                print_alarm_list();
-                // TODO: remove the alarm from the list
             }
             printf("Alarm Request With Message Number (%d) Processed at <%ld>: <%d %s>\n", 
                 alarm->message_number, time(NULL), alarm->seconds, alarm->message);
