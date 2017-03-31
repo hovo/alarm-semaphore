@@ -26,7 +26,8 @@ alarm_t *alarm_list = NULL;
 int current_alarm = 0;
 
 // Used for reader/writer problem
-sem_t rw_mutex, mutex;
+sem_t rw_mutex;
+sem_t mutex;
 int read_count = 0;
 
 void print_alarm_list() {
@@ -75,7 +76,26 @@ void find_and_replace(alarm_t *new_alarm) {
 
 // TODO - Remove node from alarm list
 void cancel_alarm (alarm_t *alarm) {
+    alarm_t *prev = alarm_list;
     
+    sem_wait(&rw_mutex);
+    // Perform deletion
+    if(alarm_list != NULL && alarm_list == alarm) {
+        if(alarm_list->link == NULL) {
+            alarm_list = NULL;
+        } else {
+            alarm_list = alarm_list->link;
+        }
+    } else {
+        if(alarm_list != NULL) {
+            while(prev->link != NULL && prev->link != alarm)
+                prev = prev->link;
+            
+            if(prev->link != NULL)
+                prev->link = prev->link->link;
+        }
+    }
+    sem_post(&rw_mutex);
 }
 
 // Insert alarm entry on list, in order.
@@ -177,6 +197,9 @@ void *alarm_thread(void *arg) {
                 if(status != 0)
                     err_abort(status, "Create periodic display thread");
             } else {
+                print_alarm_list();
+                cancel_alarm(alarm);
+                print_alarm_list();
                 // TODO: remove the alarm from the list
             }
             printf("Alarm Request With Message Number (%d) Processed at <%ld>: <%d %s>\n", 
@@ -253,7 +276,8 @@ int main (int argc, char *argv[]) {
                     printf("Error: More Than One Request to Cancel Alarm Request With Message Number (%d)!\n", cancel_message_id);
                 else {
                     at_alarm->cancellable = at_alarm->cancellable + 1;
-                    //current_alarm = at_alarm->message_number;
+                    pthread_cond_signal(&alarm_cond);
+                    current_alarm = at_alarm->message_number;
                     printf("Cancel Alarm Request With Message Number (%d) Received at <%ld>: <%d %s>\n", 
                         at_alarm->message_number, time(NULL), at_alarm->seconds, at_alarm->message);
                 }
