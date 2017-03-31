@@ -64,20 +64,12 @@ void find_and_replace(alarm_t *new_alarm) {
     
     sem_wait(&rw_mutex);
     
-    status = pthread_mutex_lock (&alarm_mutex);
-    if (status != 0)
-        err_abort (status, "Lock mutex");
-        
     old_alarm = get_alarm_at(new_alarm->message_number);
     old_alarm->seconds = new_alarm->seconds;
     old_alarm->time = time(NULL) + new_alarm->seconds;
     old_alarm->replaced = 1;
     strcpy(old_alarm->message , new_alarm->message);
     
-    status = pthread_mutex_unlock (&alarm_mutex);
-    if (status != 0)
-        err_abort (status, "Unlock mutex");
-        
     sem_post(&rw_mutex);
 }
 
@@ -179,10 +171,7 @@ void *alarm_thread(void *arg) {
 
     while(1) {
         if (alarm_list != NULL) {
-            alarm = alarm_list;
-            while(alarm->message_number != current_alarm){
-                alarm = alarm->link;
-            }
+            alarm = get_alarm_at(current_alarm);
         
             if(alarm->cancellable == 0){
                 status = pthread_create(&display_t, NULL, periodic_display_thread, (void *)alarm);
