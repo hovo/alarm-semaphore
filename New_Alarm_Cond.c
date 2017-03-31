@@ -163,6 +163,12 @@ void *periodic_display_thread(void *alarm_in) {
         if(alarm_list != NULL) {
             next = alarm_list;
             
+            sem_wait(&mutex);
+            read_count++;
+            if(read_count == 1)
+                sem_wait(&rw_mutex);
+            sem_post(&mutex);
+            
             while(next->message_number != alarm->message_number)
                 next = next->link;
                 
@@ -186,6 +192,13 @@ void *periodic_display_thread(void *alarm_in) {
                     alarm->message_number, time(NULL), alarm->seconds, alarm->message);
                 sleep(alarm->seconds);
             }
+            
+            sem_wait(&mutex);
+            read_count--;
+            if(read_count == 0)
+                sem_post(&rw_mutex);
+            sem_post(&mutex);
+
         }
     }
 }
