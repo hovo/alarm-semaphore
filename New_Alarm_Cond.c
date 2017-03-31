@@ -180,7 +180,11 @@ void *periodic_display_thread(void *alarm_in) {
                 printf("Replacement Alarm With Message Number (%d) Displayed at <%ld>: <%d %s>",
                     next->message_number, time(NULL), next->seconds, next->message);
                 alarm_replaced = 1;
-                sleep(next->message_number);
+                sleep(next->seconds);
+            } else {
+                printf("Alarm With Message Number (%d) Displayed at <%ld>: <%d %s>",
+                    alarm->message_number, time(NULL), alarm->seconds, alarm->message);
+                sleep(alarm->seconds);
             }
         }
     }
