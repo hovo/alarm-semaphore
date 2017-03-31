@@ -139,28 +139,27 @@ void *periodic_display_thread(void *alarm_in) {
     alarm_t *next;
     int status;
     
-    // while(1) {
-    //     if(alarm_list != NULL) {
-    //         next = alarm_list;
+    while(1) {
+        if(alarm_list != NULL) {
+            next = alarm_list;
             
-    //         while(next->message_number != alarm->message_number)
-    //             next = next->link;
+            while(next->message_number != alarm->message_number)
+                next = next->link;
                 
-    //         if(next == NULL || alarm->cancellable > 0) {
-    //             printf("Display thread exiting at <%ld>: <%d %s>\n", 
-    //                 time(NULL), alarm->seconds, alarm->message);
-    //             // TODO: Terminate thread
-    //             free(alarm);
-    //             break;
-    //         } else {
-    //             if(next->replaced == 1) {
-    //                 printf("Alarm With Message Number (%d) Replaced at <%ld>: <%d %s>\n",
-    //                     alarm->message_number, time(NULL), alarm->seconds, alarm->message);
-    //                 alarm_replaced = 1;
-    //             } 
-    //         }
-    //     }
-    // }
+            if(next == NULL || alarm->cancellable > 0) {
+                printf("Display thread exiting at <%ld>: <%d %s>\n", 
+                    time(NULL), alarm->seconds, alarm->message);
+                // TODO: Terminate thread
+                break;
+            } else {
+                // if(next->replaced == 1) {
+                //     printf("Alarm With Message Number (%d) Replaced at <%ld>: <%d %s>\n",
+                //         alarm->message_number, time(NULL), alarm->seconds, alarm->message);
+                //     alarm_replaced = 1;
+                // } 
+            }
+        }
+    }
 }
 
 // Alarm thread - Process new alarms
@@ -254,7 +253,7 @@ int main (int argc, char *argv[]) {
                     printf("Error: More Than One Request to Cancel Alarm Request With Message Number (%d)!\n", cancel_message_id);
                 else {
                     at_alarm->cancellable = at_alarm->cancellable + 1;
-                    pthread_cond_signal(&alarm_cond);
+                    //current_alarm = at_alarm->message_number;
                     printf("Cancel Alarm Request With Message Number (%d) Received at <%ld>: <%d %s>\n", 
                         at_alarm->message_number, time(NULL), at_alarm->seconds, at_alarm->message);
                 }
