@@ -27,11 +27,23 @@ int read_count = 0;
 void print_alarm_list() {
     alarm_t *next;
     
+    sem_wait(&mutex);
+    read_count++;
+    if(read_count == 1)
+        sem_wait(&rw_mutex);
+    sem_post(&mutex);
+    
     printf ("[list: ");
     for (next = alarm_list; next != NULL; next = next->link)
         printf ("%ld(%ld)[\"%s\"]", next->time,
             next->time - time (NULL), next->message);
     printf ("]\n");
+    
+    sem_wait(&mutex);
+    read_count--;
+    if(read_count == 0)
+        sem_post(&rw_mutex);
+    sem_post(&mutex);
 }
 
 alarm_t *get_alarm_at(int m_id) {
