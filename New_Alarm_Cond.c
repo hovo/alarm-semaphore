@@ -91,7 +91,6 @@ void alarm_insert(alarm_t *alarm) {
     int status;
     alarm_t **last, *next;
 
-
     sem_wait(&rw_mutex);
     /*
      * LOCKING PROTOCOL:
@@ -177,7 +176,7 @@ void *alarm_thread(void *arg) {
     pthread_t display_t;
     alarm_t *alarm;
     int status;
-    
+
     while(1) {
         if (alarm_list != NULL) {
             alarm = alarm_list;
@@ -211,7 +210,7 @@ int main (int argc, char *argv[]) {
     //semaphore init
     sem_init(&mutex, 0, 1);
     sem_init(&rw_mutex, 0, 1);
-
+    
     status = pthread_create (&thread, NULL, alarm_thread, NULL);
     if (status != 0)
         err_abort (status, "Create alarm thread");
@@ -243,6 +242,7 @@ int main (int argc, char *argv[]) {
                  * sorted by message_number.
                  */
                 alarm_insert (alarm);
+                pthread_cond_signal(&alarm_cond);
                 
                 status = pthread_mutex_unlock (&alarm_mutex);
                 if (status != 0)
@@ -265,6 +265,7 @@ int main (int argc, char *argv[]) {
                     printf("Error: More Than One Request to Cancel Alarm Request With Message Number (%d)!\n", cancel_message_id);
                 else {
                     at_alarm->cancellable = at_alarm->cancellable + 1;
+                    pthread_cond_signal(&alarm_cond);
                     printf("Cancel Alarm Request With Message Number (%d) Received at <%ld>: <%d %s>\n", 
                         at_alarm->message_number, time(NULL), at_alarm->seconds, at_alarm->message);
                 }
