@@ -1,6 +1,7 @@
 #include <pthread.h>
 #include <time.h>
 #include "errors.h"
+#include <semaphore.h>
 
 /*
  * The "alarm" structure now contains the time_t (time since the
@@ -23,6 +24,10 @@ pthread_mutex_t alarm_mutex = PTHREAD_MUTEX_INITIALIZER;
 pthread_cond_t alarm_cond = PTHREAD_COND_INITIALIZER;
 alarm_t *alarm_list = NULL;
 int current_alarm = 0;
+
+// Used for reader/writer problem
+sem_t rw_mutex, mutex;
+int read_count = 0;
 
 void print_alarm_list() {
     alarm_t *next;
@@ -57,6 +62,8 @@ void find_and_replace(alarm_t *new_alarm) {
     alarm_t *old_alarm;
     int status;
     
+    sem_wait(&rw_mutex);
+    
     status = pthread_mutex_lock (&alarm_mutex);
     if (status != 0)
         err_abort (status, "Lock mutex");
@@ -70,6 +77,8 @@ void find_and_replace(alarm_t *new_alarm) {
     status = pthread_mutex_unlock (&alarm_mutex);
     if (status != 0)
         err_abort (status, "Unlock mutex");
+        
+    sem_post(&rw_mutex);
 }
 
 // TODO - Remove node from alarm list
@@ -82,6 +91,8 @@ void alarm_insert(alarm_t *alarm) {
     int status;
     alarm_t **last, *next;
 
+
+    sem_wait(&rw_mutex);
     /*
      * LOCKING PROTOCOL:
      * 
@@ -127,37 +138,38 @@ void alarm_insert(alarm_t *alarm) {
         if (status != 0)
             err_abort (status, "Signal cond");
     }
+    
+    sem_post(&rw_mutex);
 }
 
 void *periodic_display_thread(void *alarm_in) {
-    //printf("received");
     int alarm_replaced = 0;
     alarm_t *alarm = (alarm_t*) alarm_in;
     alarm_t *next;
     int status;
     
-    while(1) {
-        if(alarm_list != NULL) {
-            next = alarm_list;
+    // while(1) {
+    //     if(alarm_list != NULL) {
+    //         next = alarm_list;
             
-            while(next->message_number != alarm->message_number)
-                next = next->link;
+    //         while(next->message_number != alarm->message_number)
+    //             next = next->link;
                 
-            if(next == NULL || alarm->cancellable > 0) {
-                printf("Display thread exiting at <%ld>: <%d %s>\n", 
-                    time(NULL), alarm->seconds, alarm->message);
-                // TODO: Terminate thread
-                free(alarm);
-                break;
-            } else {
-                if(next->replaced == 1) {
-                    printf("Alarm With Message Number (%d) Replaced at <%ld>: <%d %s>\n",
-                        alarm->message_number, time(NULL), alarm->seconds, alarm->message);
-                    alarm_replaced = 1;
-                } 
-            }
-        }
-    }
+    //         if(next == NULL || alarm->cancellable > 0) {
+    //             printf("Display thread exiting at <%ld>: <%d %s>\n", 
+    //                 time(NULL), alarm->seconds, alarm->message);
+    //             // TODO: Terminate thread
+    //             free(alarm);
+    //             break;
+    //         } else {
+    //             if(next->replaced == 1) {
+    //                 printf("Alarm With Message Number (%d) Replaced at <%ld>: <%d %s>\n",
+    //                     alarm->message_number, time(NULL), alarm->seconds, alarm->message);
+    //                 alarm_replaced = 1;
+    //             } 
+    //         }
+    //     }
+    // }
 }
 
 // Alarm thread - Process new alarms
@@ -174,7 +186,6 @@ void *alarm_thread(void *arg) {
             }
         
             if(alarm->cancellable == 0){
-                // TODO: create a new periodic_display_thread
                 status = pthread_create(&display_t, NULL, periodic_display_thread, (void *)alarm);
                 if(status != 0)
                     err_abort(status, "Create periodic display thread");
@@ -196,6 +207,10 @@ int main (int argc, char *argv[]) {
     char line[256];
     alarm_t *alarm;
     pthread_t thread;
+    
+    //semaphore init
+    sem_init(&mutex, 0, 1);
+    sem_init(&rw_mutex, 0, 1);
 
     status = pthread_create (&thread, NULL, alarm_thread, NULL);
     if (status != 0)
