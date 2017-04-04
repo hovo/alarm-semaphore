@@ -189,12 +189,12 @@ void *periodic_display_thread(void *alarm_in) {
                     alarm->message_number, time(NULL), alarm->seconds, alarm->message);
                 }
               
-                printf("Replacement Alarm With Message Number (%d) Displayed at <%ld>: <%d %s>",
+                printf("Replacement Alarm With Message Number (%d) Displayed at <%ld>: <%d %s>\n",
                     next->message_number, time(NULL), next->seconds, next->message);
                 alarm_replaced = 1;
                 sleep(next->seconds);
             } else {
-                printf("Alarm With Message Number (%d) Displayed at <%ld>: <%d %s>",
+                printf("Alarm With Message Number (%d) Displayed at <%ld>: <%d %s>\n",
                     alarm->message_number, time(NULL), alarm->seconds, alarm->message);
                 sleep(alarm->seconds);
             }
