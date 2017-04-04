@@ -1,1 +1,78 @@
+# [SUCCESS] Invalid commands.
 
+Blah.
+Invalid command.
+0
+Invalid command.
+
+# [SUCCESS] Replacement request with cancellation errors
+
+5 Message(2) Request_1
+First Alarm Request With Message Number (2) Received at <1486159009>: <5 Request_1>
+Alarm Request With Message Number (2) Processed at <1486159009>: <5 Request_1>
+Alarm With Message Number (2) Displayed at <1486159009>: <5 Request_1>
+Alarm With Message Number (2) Displayed at <1486159014>: <5 Request_1>
+Alarm With Message Number (2) Displayed at <1486159019>: <5 Request_1>
+Alarm With Message Number (2) Displayed at <1486159024>: <5 Request_1>
+10 Message(2) Replacement_1
+Replacement Alarm Request With Message Number (2) Received at <1486159025>: <10 Replacement_1>
+Alarm Request With Message Number (2) Processed at <1486159025>: <10 Replacement_1>
+Alarm With Message Number (2) Replaced at <1486159029>: <10 Replacement_1>
+Cancel: Message(5)
+Error: No Alarm Request With Message Number (5) to Cancel!
+Replacement Alarm With Message Number (2) Displayed at <1486159039>: <10 Replacement_1>
+Cancel: Message(2)
+Cancel Alarm Request With Message Number (2) Received at <1486159042>: <5 Request_1>
+Alarm Request With Message Number (2) Processed at <1486159042>: <5 Request_1>
+Cancel: Message(2)
+Error: More Than One Request to Cancel Alarm Request With Message Number (2)!
+Display thread exiting at <1486159049>: <5 Request_1>
+
+# [SUCCESS] One request created and cancelled
+
+5 Message(2) Request_1
+First Alarm Request With Message Number (2) Received at <1491262009>: <5 Request_1>
+Alarm Request With Message Number (2) Processed at <1491262009>: <5 Request_1>
+Alarm With Message Number (2) Displayed at <1491262009>: <5 Request_1>
+Alarm With Message Number (2) Displayed at <1491262014>: <5 Request_1>
+Alarm With Message Number (2) Displayed at <1491262019>: <5 Request_1>
+Alarm With Message Number (2) Displayed at <1491262024>: <5 Request_1>
+Alarm With Message Number (2) Displayed at <1491262029>: <5 Request_1>
+Cancel: Message(2)
+Cancel Alarm Request With Message Number (2) Received at <1491262032>: <5 Request_1>
+Alarm Request With Message Number (2) Processed at <1491262032>: <5 Request_1>
+Display thread exiting at <1491262034>: <5 Request_1>
+
+# [SUCCESS] Multiple requests created and cancelled
+# NOTE: This test was a success after multiple failures
+
+5 Message(2) Request_1
+First Alarm Request With Message Number (2) Received at <1491287409>: <5 Request_1>
+Alarm Request With Message Number (2) Processed at <1491287409>: <5 Request_1>
+Alarm With Message Number (2) Displayed at <1491287409>: <5 Request_1>
+Alarm With Message Number (2) Displayed at <1491287414>: <5 Request_1>
+Alarm With Message Number (2) Displayed at <1491287419>: <5 Request_1>
+Alarm With Message Number (2) Displayed at <1491287424>: <5 Request_1>
+Alarm With Message Number (2) Displayed at <1491287429>: <5 Request_1>
+Alarm With Message Number (2) Displayed at <1491287434>: <5 Request_1>
+Alarm With Message Number (2) Displayed at <1491287439>: <5 Request_1>
+10 Message(3) Request_2
+First Alarm Request With Message Number (3) Received at <1491287439>: <10 Request_2>
+Alarm Request With Message Number (3) Processed at <1491287439>: <10 Request_2>
+Alarm With Message Number (3) Displayed at <1491287439>: <10 Request_2>
+Alarm With Message Number (2) Displayed at <1491287444>: <5 Request_1>
+Alarm With Message Number (2) Displayed at <1491287449>: <5 Request_1>
+Alarm With Message Number (3) Displayed at <1491287449>: <10 Request_2>
+Alarm With Message Number (2) Displayed at <1491287454>: <5 Request_1>
+Alarm With Message Number (2) Displayed at <1491287459>: <5 Request_1>
+Alarm With Message Number (3) Displayed at <1491287459>: <10 Request_2>
+Cancel: Message(3)
+Cancel Alarm Request With Message Number (3) Received at <1491287463>: <10 Request_2>
+Alarm Request With Message Number (3) Processed at <1491287463>: <10 Request_2>
+Alarm With Message Number (2) Displayed at <1491287464>: <5 Request_1>
+Alarm With Message Number (2) Displayed at <1491287469>: <5 Request_1>
+Display thread exiting at <1491287469>: <10 Request_2>
+Cancel: Message(2)
+Cancel Alarm Request With Message Number (2) Received at <1491287470>: <5 Request_1>
+Alarm Request With Message Number (2) Processed at <1491287470>: <5 Request_1>
+Display thread exiting at <1491287479>: <5 Request_1>
