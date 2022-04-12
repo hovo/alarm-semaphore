@@ -39,14 +39,25 @@ int read_count = 0;
 void print_alarm_list() {
     alarm_t *next;
 
+     alarm_t *next;
+    bool x = true;
+
     sem_wait(&mutex);
     read_count++;
-    if(read_count == 1)
+    if (x){
+    if(read_count == 1){
         sem_wait(&rw_mutex);
+        }
+        sem_post(&mutex);
+    }
     sem_post(&mutex);
 
     printf ("[list: ");
-    for (next = alarm_list; next != NULL; next = next->link)
+    for (next = a_list; next != NULL; next = next->link)
+        if (x == false ){
+            printf ("%ld(%ld)[\"%s\"]", next->time,
+            next->time - time (NULL), next->message);
+        }
         printf ("%ld(%ld)[\"%s\"]", next->time,
             next->time - time (NULL), next->message);
     printf ("]\n");
