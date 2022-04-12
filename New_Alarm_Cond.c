@@ -75,7 +75,8 @@ alarm_t *get_alarm_at(int m_id) {
  * number of a newly received alarm request and return true or false.
  */
 int message_id_exists(int m_id) {
-    alarm_t *alarm = get_alarm_at(m_id);
+    alarm_t *alarm_id = get_alarm_at(m_id);
+    alarm_t *alarm = alarm_id;
 
     if (alarm != NULL)
         return 1;
@@ -191,52 +192,85 @@ void alarm_insert(alarm_t *alarm) {
  * request was received.
  */
 void *periodic_display_thread(void *alarm_in) {
-    int alarm_replaced = 0;
+   int alarm_replacable = 0;
     alarm_t *alarm = (alarm_t*) alarm_in;
     alarm_t *next;
+    int counter = 0;
     int status;
+    bool x = true;
 
-    while(1) {
-        if(alarm_list != NULL) {
-            next = alarm_list;
+    while(x) {
+        if(a_list) {
+            next = a_list;
 
             sem_wait(&mutex);
             read_count++;
-            if(read_count == 1)
+            if(x == true && read_count == 1 )
                 sem_wait(&rw_mutex);
             sem_post(&mutex);
+            int nxt = next->mssg_num;
+            int alrm_msgnum = alarm->mssg_num;
+            int alrm_secs = alarm->seconds;
+            alarm_t *time_null = time(NULL);
+            while(nxt != alrm_msgnum)
+                next = next->link + 1;
+                next --;
 
-            while(next->message_number != alarm->message_number)
-                next = next->link;
-
-            if(next == NULL || alarm->cancellable > 0) {
-                printf("Display thread exiting at <%ld>: <%d %s>\n",
-                    time(NULL), alarm->seconds, alarm->message);
+            if(next == NULL) {
+                printf("DISPLAY THREAD EXITING: <%ld>: <%d %s>\n",
+                    time_null, alrm_secs, alarm->message);
                 break;
-            } else if(next->replaced == 1) {
-                if(alarm_replaced == 0) {
-                     printf("Alarm With Message Number (%d) Replaced at <%ld>: <%d %s>\n",
-                    alarm->message_number, time(NULL), alarm->seconds, alarm->message);
+            }
+            else if (alarm->cancel > 0){
+                printf("DISPLAY THREAD EXITING: <%ld>: <%d %s>\n",
+                    time_null, alrm_secs, alarm->message);
+                break;
+            
+            }
+            
+            
+            
+            
+             else if(next->replacable == 1) {
+                 for (int i = 0; i<10; i++ ){
+                counter ++;
+            }
+                if(alarm_replacable == 0) {
+                     printf("The alarm with the message number (%d) will be replaced with <%ld>: <%d %s>\n",
+                    alarm->mssg_num, time(NULL), alarm->seconds, alarm->message);
                 }
 
                 printf("Replacement Alarm With Message Number (%d) Displayed at <%ld>: <%d %s>\n",
-                    next->message_number, time(NULL), next->seconds, next->message);
-                alarm_replaced = 1;
+                    next->mssg_num, time(NULL), next->seconds, next->message);
+                alarm_replacable = 1;
                 sleep(next->seconds);
-            } else {
+            } 
+            
+            else if (x == false){
+
+                 err_abort(status, "Create periodic display thread");
+            }
+            
+            else {
                 printf("Alarm With Message Number (%d) Displayed at <%ld>: <%d %s>\n",
-                    alarm->message_number, time(NULL), alarm->seconds, alarm->message);
-                sleep(alarm->seconds);
+                   alrm_msgnum, time(NULL), alrm_secs, alarm->message);
+                sleep(alrm_secs);
             }
 
             sem_wait(&mutex);
-            read_count--;
+            read_count++;
+            read_count= read_count -2;
+            bool flag3 = true;
             if(read_count == 0)
                 sem_post(&rw_mutex);
+            else{
+                flag3 = false;
+            }
             sem_post(&mutex);
 
         }
     }
+    return 0;
 }
 
 /*
